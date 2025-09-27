@@ -24,6 +24,7 @@ async def ingest_sources(request: Request) -> IngestResponse:
     logger.info(f"/ingest called from {client_ip}")
     print(f"[API] /ingest called from {client_ip}")
     products: List[str] = settings.DEFAULT_PRODUCTS
+    subreddits: List[str] | None = None
     try:
         # Attempt to parse JSON body; handle empty body gracefully
         data = await request.json()
@@ -33,20 +34,31 @@ async def ingest_sources(request: Request) -> IngestResponse:
                 products = [str(p).strip() for p in maybe if str(p).strip()]
                 if not products:
                     products = settings.DEFAULT_PRODUCTS
+            maybe_subs = data.get("subreddits")
+            if isinstance(maybe_subs, list):
+                # normalize subreddit names (strip leading r/ if provided)
+                normalized = []
+                for s in maybe_subs:
+                    name = str(s).strip()
+                    if name.lower().startswith("r/"):
+                        name = name[2:]
+                    if name:
+                        normalized.append(name)
+                subreddits = normalized or None
     except Exception:
         # No/invalid JSON body; keep defaults
         pass
     
-    logger.info(f"/ingest resolved products: {products}")
-    print(f"[API] /ingest resolved products: {products}")
+    logger.info(f"/ingest resolved products: {products} subreddits={subreddits}")
+    print(f"[API] /ingest resolved products: {products} subreddits={subreddits}")
     logger.info("/ingest starting ingestion run_once")
     print("[API] /ingest starting ingestion run_once")
     # Run ingestion
-    await ingestion_service.run_once(products)
+    await ingestion_service.run_once(products, subreddits=subreddits)
     logger.info("/ingest completed ingestion run_once")
     print("[API] /ingest completed ingestion run_once")
     
-    return IngestResponse(status="completed", products=products)
+    return IngestResponse(status="completed", products=products, subreddits=subreddits)
 
 @router.post("/start", response_model=IngestResponse)
 async def ingest_sources_start(request: Request) -> IngestResponse:
@@ -57,6 +69,7 @@ async def ingest_sources_start(request: Request) -> IngestResponse:
     client_ip = request.client.host if request.client else "-"
     logger.info(f"/ingest/start called from {client_ip}")
     products: List[str] = settings.DEFAULT_PRODUCTS
+    subreddits: List[str] | None = None
     try:
         data = await request.json()
         if isinstance(data, dict):
@@ -66,9 +79,19 @@ async def ingest_sources_start(request: Request) -> IngestResponse:
                 products = [str(p).strip() for p in maybe if str(p).strip()]
                 if not products:
                     products = settings.DEFAULT_PRODUCTS
+            maybe_subs = data.get("subreddits")
+            if isinstance(maybe_subs, list):
+                normalized = []
+                for s in maybe_subs:
+                    name = str(s).strip()
+                    if name.lower().startswith("r/"):
+                        name = name[2:]
+                    if name:
+                        normalized.append(name)
+                subreddits = normalized or None
     except Exception:
         pass
 
-    await ingestion_service.run_once(products)
+    await ingestion_service.run_once(products, subreddits=subreddits)
     logger.info("/ingest/start completed ingestion run_once")
-    return IngestResponse(status="completed", products=products)
+    return IngestResponse(status="completed", products=products, subreddits=subreddits)

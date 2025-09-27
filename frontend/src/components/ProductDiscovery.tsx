@@ -27,6 +27,7 @@ export const ProductDiscovery = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isIngesting, setIsIngesting] = useState(false);
   const [results, setResults] = useState<DiscoveryResults | null>(null);
+  const [selectedSubs, setSelectedSubs] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
   const handleDiscover = async () => {
@@ -41,6 +42,7 @@ export const ProductDiscovery = () => {
 
     setIsLoading(true);
     setResults(null);
+    setSelectedSubs({});
 
     try {
       const productList = products
@@ -141,6 +143,53 @@ export const ProductDiscovery = () => {
     }
   };
 
+  const handleToggleSub = (subreddit: string) => {
+    setSelectedSubs(prev => ({ ...prev, [subreddit]: !prev[subreddit] }));
+  };
+
+  const handleIngestSelected = async () => {
+    const chosen = Object.keys(selectedSubs).filter(k => selectedSubs[k]);
+    if (chosen.length === 0) {
+      toast({ title: "No subreddits selected", description: "Select at least one subreddit to ingest.", variant: "destructive" });
+      return;
+    }
+
+    setIsIngesting(true);
+    try {
+      const productList = products
+        .split(",")
+        .map(p => p.trim())
+        .filter(p => p.length > 0);
+
+      const response = await fetch("http://localhost:8000/ingest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ products: productList, subreddits: chosen }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        console.error("[UI] /ingest failed:", response.status, text);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      toast({
+        title: "Ingestion Started",
+        description: `Status: ${data.status}. Subreddits: ${(data.subreddits || []).join(", ")}`,
+      });
+    } catch (error) {
+      console.error("Ingestion (selected) failed:", error);
+      toast({
+        title: "Ingestion Failed",
+        description: "Failed to start ingestion for selected subreddits.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsIngesting(false);
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !isLoading) {
       handleDiscover();
@@ -228,31 +277,57 @@ export const ProductDiscovery = () => {
           </CardHeader>
           <CardContent>
             {results.reddit && results.reddit.length > 0 ? (
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-sm text-muted-foreground">
+                  Select subreddits to ingest, or use the generic Ingest button.
+                </div>
+                <Button onClick={handleIngestSelected} disabled={isIngesting} variant="outline">
+                  {isIngesting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Ingesting...
+                    </>
+                  ) : (
+                    <>Ingest Selected</>
+                  )}
+                </Button>
+              </div>
+            ) : null}
+            {results.reddit && results.reddit.length > 0 ? (
               <div className="space-y-3">
                 {results.reddit.map((channel, index) => (
                   <div
                     key={channel.channel_id}
                     className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                   >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold text-lg">{channel.name}</h3>
-                        <Badge variant="secondary" className="text-xs">
-                          {channel.platform}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <TrendingUp className="h-4 w-4" />
-                          <span>Score: {channel.score.toFixed(1)}</span>
+                    <div className="flex items-start gap-3 flex-1">
+                      <input
+                        type="checkbox"
+                        className="mt-1 h-4 w-4"
+                        checked={!!selectedSubs[channel.channel_id]}
+                        onChange={() => handleToggleSub(channel.channel_id)}
+                        aria-label={`Select ${channel.name}`}
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="font-semibold text-lg">{channel.name}</h3>
+                          <Badge variant="secondary" className="text-xs">
+                            {channel.platform}
+                          </Badge>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <MessageSquare className="h-4 w-4" />
-                          <span>{channel.metrics.mentions} mentions</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Users className="h-4 w-4" />
-                          <span>{channel.metrics.comments} comments</span>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <TrendingUp className="h-4 w-4" />
+                            <span>Score: {channel.score.toFixed(1)}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <MessageSquare className="h-4 w-4" />
+                            <span>{channel.metrics.mentions} mentions</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Users className="h-4 w-4" />
+                            <span>{channel.metrics.comments} comments</span>
+                          </div>
                         </div>
                       </div>
                     </div>

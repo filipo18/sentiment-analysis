@@ -17,6 +17,7 @@ class DiscoverResponse(BaseModel):
 class IngestRequest(BaseModel):
     """Request model for content ingestion."""
     products: Optional[List[str]] = None
+    subreddits: Optional[List[str]] = None
 
 class CommentData(BaseModel):
     """Model for comment data to be stored in database."""
@@ -43,3 +44,4 @@ class IngestResponse(BaseModel):
     """Response model for ingestion."""
     status: str
     products: List[str]
+    subreddits: Optional[List[str]] = None
