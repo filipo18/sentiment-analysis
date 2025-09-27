@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+asyncpraw
+praw
+pydantic
+python-dotenv
+supabase
+python-multipart
+openai>=1.40.0
