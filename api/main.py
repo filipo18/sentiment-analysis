@@ -3,6 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.routers import discovery, ingestion, comments, health, analysis
+from app.routers import qa
 import logging
 import time
 import sys
@@ -55,6 +56,7 @@ app.include_router(discovery.router)
 app.include_router(ingestion.router)
 app.include_router(comments.router)
 app.include_router(analysis.router)
+app.include_router(qa.router)
 
 if __name__ == "__main__":
     import uvicorn

@@ -1,5 +1,6 @@
 import { HeroSection } from "@/components/HeroSection";
 import { SentimentDashboard } from "@/components/SentimentDashboard";
+import { CommentSearch } from "@/components/CommentSearch";
 import { ComingSoonSection } from "@/components/ComingSoonSection";
 import { ProductDiscovery } from "@/components/ProductDiscovery";
 
@@ -18,6 +19,9 @@ const Index = () => {
 
       {/* Dashboard 1: Sentiment Analysis */}
       <SentimentDashboard />
+
+      {/* Search & Q&A Section */}
+      <CommentSearch />
 
       {/* Dashboard 2: Coming Soon */}
       <ComingSoonSection />

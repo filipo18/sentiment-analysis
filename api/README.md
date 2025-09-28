@@ -91,6 +91,29 @@ The API will be available at `http://localhost:8000`
 - `GET /comments/brand/{brand_name}` - Get comments by brand
 - `GET /comments/recent` - Get most recent comments
 
+### Q&A (Weaviate)
+- `POST /qa/ask` - Ask a question about stored comments
+  - Body: `{ "question": "What do people say about battery life?", "limit": 5 }`
+- `GET /qa/search?query=...` - Semantic search through comments
+- `POST /qa/sync?limit=1000` - Sync comments from Supabase to Weaviate
+- `GET /qa/stats` - Get Weaviate collection stats
+
+## Weaviate Setup (Optional)
+1. Install dependency:
+   ```bash
+   pip install weaviate-client
+   ```
+2. Run Weaviate locally:
+   ```bash
+   docker run -p 8080:8080 -p 50051:50051 semitechnologies/weaviate:latest
+   ```
+3. Add to `.env`:
+   ```bash
+   WEAVIATE_URL=http://localhost:8080
+   WEAVIATE_API_KEY=
+   OPENAI_API_KEY=your_openai_key
+   ```
+
 ## Database Schema
 
 The application uses Supabase with the `main_reddit` table:
