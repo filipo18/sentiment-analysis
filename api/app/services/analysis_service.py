@@ -3,9 +3,10 @@ from __future__ import annotations
 
 import json
 import os
+import asyncio
 from typing import Any, Dict, List, Optional, Tuple
 
-from openai import OpenAI
+from openai import AsyncOpenAI
 
 from app.database import db_service
 
@@ -115,10 +116,22 @@ def _classify_from_net(positive: int, negative: int) -> str:
 class AnalysisService:
     def __init__(self) -> None:
         api_key = _load_openai_key()
-        self.client = OpenAI(api_key=api_key)
+        self.client = AsyncOpenAI(api_key=api_key)
         self._attribute_cache: Dict[str, List[str]] = {}  # Product name -> attributes cache
+        try:
+            self._max_concurrency: int = int(os.getenv("ANALYSIS_CONCURRENCY", "8"))
+        except Exception:
+            self._max_concurrency = 8
+        try:
+            self._batch_size: int = int(os.getenv("ANALYSIS_BATCH_SIZE", "50"))
+        except Exception:
+            self._batch_size = 50
+        try:
+            self._db_concurrency: int = int(os.getenv("DB_UPDATE_CONCURRENCY", "10"))
+        except Exception:
+            self._db_concurrency = 10
 
-    def _get_product_attributes(self, product_name: str) -> List[str]:
+    async def _get_product_attributes(self, product_name: str) -> List[str]:
         """Get the top 30 most common attributes for a product, with caching."""
         if product_name in self._attribute_cache:
             return self._attribute_cache[product_name]
@@ -134,13 +147,12 @@ class AnalysisService:
             
             user_prompt = f"Product: {product_name}\n\nReturn the top 30 most discussed attributes as a JSON array."
             
-            response = self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model="gpt-5-mini",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.3
             )
             
             attributes = json.loads(response.choices[0].message.content)
@@ -159,7 +171,7 @@ class AnalysisService:
         print(f"Using fallback attributes for {product_name}")
         return fallback_attributes
 
-    def _analyze_comment(self, comment: str, product_name: str, attributes: List[str]) -> Dict[str, Any]:
+    async def _analyze_comment(self, comment: str, product_name: str, attributes: List[str]) -> Dict[str, Any]:
         system = (
             "You are a strict JSON API. "
             "Return only JSON that matches the provided JSON schema. "
@@ -168,7 +180,7 @@ class AnalysisService:
         )
         user = f'Comment: """{comment}"""'
 
-        resp = self.client.chat.completions.create(
+        resp = await self.client.chat.completions.create(
             model="gpt-5-mini",
             messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
             response_format={
@@ -195,12 +207,12 @@ class AnalysisService:
             "attribute_sentiment": attribute_sentiment,
         }
 
-    def analyze_recent_comments(self, limit: int = 100) -> Dict[str, Any]:
+    async def analyze_recent_comments(self, limit: int = 100) -> Dict[str, Any]:
         """Analyze up to 'limit' recent comments and update rows with results.
 
         Updates fields: comment_sentiment, attribute_discussed, attribute_sentiment.
         """
-        result = db_service.get_recent_comments(limit=limit)
+        result = await asyncio.to_thread(db_service.get_recent_comments, limit=limit)
         comments = result.get("comments", [])
 
         if not comments:
@@ -214,23 +226,33 @@ class AnalysisService:
 
         # Get product-specific attributes (cached after first call)
         print(f"Getting attributes for product: {product_name}")
-        attributes = self._get_product_attributes(product_name)
+        attributes = await self._get_product_attributes(product_name)
 
-        updated = 0
-        skipped = 0
-        for row in comments:
+        semaphore = asyncio.Semaphore(max(1, self._max_concurrency))
+
+        async def process_row(row: Dict[str, Any]) -> int:
             cid = row.get("id")
             text = (row.get("comment") or "").strip()
             if not cid or not text:
-                skipped += 1
-                continue
-            print(f"Analyzing comment {cid}")
-            analysis = self._analyze_comment(text, product_name, attributes)
-            print(f"Analysis: {analysis}")
-            db_service.update_comment_fields(int(cid), analysis)
-            updated += 1
+                return 0
+            async with semaphore:
+                try:
+                    print(f"Analyzing comment {cid}")
+                    analysis = await self._analyze_comment(text, product_name, attributes)
+                    print(f"Analysis: {analysis}")
+                    ok = await asyncio.to_thread(db_service.update_comment_fields, int(cid), analysis)
+                    return 1 if ok else 0
+                except Exception as e:
+                    print(f"[ANALYZE] Failed processing comment {cid}: {e}")
+                    return 0
 
-        return {"updated": updated, "skipped": skipped, "total_scanned": len(comments)}
+        tasks: List[asyncio.Task[int]] = [asyncio.create_task(process_row(row)) for row in comments]
+        results = await asyncio.gather(*tasks, return_exceptions=False)
+
+        updated = sum(int(x) for x in results)
+        skipped = len(comments) - updated
+
+        return {"updated": int(updated), "skipped": int(max(0, skipped)), "total_scanned": len(comments)}
 
 
 # Global instance

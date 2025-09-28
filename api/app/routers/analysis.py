@@ -16,7 +16,7 @@ async def analyse_sentiment(limit: Optional[int] = Query(default=None, ge=1, le=
     """
     settings = get_settings()
     effective_limit = int(limit or settings.ANALYSIS_LIMIT)
-    summary = analysis_service.analyze_recent_comments(limit=effective_limit)
+    summary = await analysis_service.analyze_recent_comments(limit=effective_limit)
     return {  # type: ignore[return-value]
         "updated": int(summary.get("updated", 0)),
         "skipped": int(summary.get("skipped", 0)),
