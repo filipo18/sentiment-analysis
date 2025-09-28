@@ -47,6 +47,7 @@ export const ComingSoonSection = () => {
 
       const chartData = Object.values(attributeMap)
         .filter(item => item.positive > 0 || item.negative > 0 || item.neutral > 0) // Show attributes with any sentiment
+        .filter(item => item.attribute !== "general") // Exclude "general" attribute
         .map(item => {
           const total = item.positive + item.negative + item.neutral;
           return {
@@ -139,19 +140,28 @@ export const ComingSoonSection = () => {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
             ) : (
-              <ChartContainer config={chartConfig} className="h-96">
+              <ChartContainer config={chartConfig} className="h-96 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={attributeData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                  <BarChart 
+                    data={attributeData} 
+                    margin={{ top: 20, right: 20, left: 60, bottom: 120 }}
+                    barCategoryGap="10%"
+                  >
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                     <XAxis 
                       dataKey="attribute" 
                       angle={-45}
                       textAnchor="end"
-                      height={100}
+                      height={120}
                       interval={0}
-                      fontSize={18}
+                      fontSize={14}
+                      tick={{ fontSize: 14 }}
+                      width={80}
                     />
-                    <YAxis tick={{ fontSize: 18 }} />
+                    <YAxis 
+                      tick={{ fontSize: 14 }}
+                      width={50}
+                    />
                     <ChartTooltip content={<ChartTooltipContent />} />
                     <Bar dataKey={showAttributePercentages ? "positivePercent" : "positive"} stackId="a" fill="hsl(142, 76%, 36%)" name="Positive" />
                     <Bar dataKey={showAttributePercentages ? "neutralPercent" : "neutral"} stackId="a" fill="hsl(220, 70%, 50%)" name="Neutral" />
