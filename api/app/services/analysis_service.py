@@ -9,7 +9,7 @@ from openai import OpenAI
 
 from app.database import db_service
 
-
+# only here for now
 ATTRIBUTE_VOCAB: List[str] = [
     "battery life",
     "price",
@@ -116,13 +116,55 @@ class AnalysisService:
     def __init__(self) -> None:
         api_key = _load_openai_key()
         self.client = OpenAI(api_key=api_key)
+        self._attribute_cache: Dict[str, List[str]] = {}  # Product name -> attributes cache
 
-    def _analyze_comment(self, comment: str) -> Dict[str, Any]:
+    def _get_product_attributes(self, product_name: str) -> List[str]:
+        """Get the top 30 most common attributes for a product, with caching."""
+        if product_name in self._attribute_cache:
+            return self._attribute_cache[product_name]
+        
+        try:
+            # Extract attributes using OpenAI
+            system_prompt = (
+                "You are an expert product analyst. Given a product name, return the top 30 most "
+                "commonly discussed attributes/features that people typically mention when reviewing "
+                "or discussing this product. Focus on attributes that would be relevant for sentiment analysis. "
+                "Return ONLY a JSON array of strings, no explanations or additional text."
+            )
+            
+            user_prompt = f"Product: {product_name}\n\nReturn the top 30 most discussed attributes as a JSON array."
+            
+            response = self.client.chat.completions.create(
+                model="gpt-5-mini",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.3
+            )
+            
+            attributes = json.loads(response.choices[0].message.content)
+            if isinstance(attributes, list) and len(attributes) > 0:
+                # Add 'general' as a fallback option
+                attributes.append("general")
+                self._attribute_cache[product_name] = attributes
+                print(f"Extracted {len(attributes)} attributes for {product_name}: {attributes[:5]}...")
+                return attributes
+        except Exception as e:
+            print(f"Failed to extract attributes for {product_name}: {e}")
+        
+        # Fallback to hardcoded attributes if extraction fails
+        fallback_attributes = ATTRIBUTE_VOCAB.copy()
+        self._attribute_cache[product_name] = fallback_attributes
+        print(f"Using fallback attributes for {product_name}")
+        return fallback_attributes
+
+    def _analyze_comment(self, comment: str, product_name: str, attributes: List[str]) -> Dict[str, Any]:
         system = (
             "You are a strict JSON API. "
             "Return only JSON that matches the provided JSON schema. "
             "Produce whole-number percentages (0–100) and make each triad sum to 100. "
-            f"Pick the single most-relevant product attribute from this list; if unclear choose 'general': {', '.join(ATTRIBUTE_VOCAB)}."
+            f"Pick the single most-relevant product attribute from this list; if unclear choose 'general': {', '.join(attributes)}."
         )
         user = f'Comment: """{comment}"""'
 
@@ -161,6 +203,19 @@ class AnalysisService:
         result = db_service.get_recent_comments(limit=limit)
         comments = result.get("comments", [])
 
+        if not comments:
+            return {"updated": 0, "skipped": 0, "total_scanned": 0}
+
+        # Extract product name from the first comment (all should be the same)
+        product_name = comments[0].get("product_name")
+        if not product_name:
+            print("No product name found in comments")
+            return {"updated": 0, "skipped": len(comments), "total_scanned": len(comments)}
+
+        # Get product-specific attributes (cached after first call)
+        print(f"Getting attributes for product: {product_name}")
+        attributes = self._get_product_attributes(product_name)
+
         updated = 0
         skipped = 0
         for row in comments:
@@ -170,7 +225,7 @@ class AnalysisService:
                 skipped += 1
                 continue
             print(f"Analyzing comment {cid}")
-            analysis = self._analyze_comment(text)
+            analysis = self._analyze_comment(text, product_name, attributes)
             print(f"Analysis: {analysis}")
             db_service.update_comment_fields(int(cid), analysis)
             updated += 1
