@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LineChart, Line, Tooltip, Cell } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { TrendingUp, BarChart3 } from "lucide-react";
@@ -139,23 +140,24 @@ export const SentimentDashboard = () => {
         </div>
       </section>;
   }
-  return <section className="py-16 px-4">
+  return <section className="py-8 px-4">
       <div className="max-w-7xl mx-auto">
+        {/* Dark separator line (above section) */}
+        <div className="w-full h-px bg-gray-800 mt-16 mb-8"></div>
+        
         <div className="text-left mb-12">
-          <h2 className="text-3xl font-bold mb-4 gradient-primary bg-clip-text text-transparent">
-            Sentiment Analysis
+
+          <h2 className="text-3xl font-bold mb-4">
+            Track consumer sentiment over time
           </h2>
-          <h3 className="text-2xl font-semibold mb-4 text-foreground">
-            Sentiment over time
-          </h3>
-          <p className="text-muted-foreground">
-            Real-time insights from Reddit conversations
+          <p className="text-xl text-muted-foreground max-w-3xl">
+            Track the evolution of consumer sentiment over time
           </p>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Sentiment Percentage Bar Chart */}
-          <Card className="p-6 shadow-card border-border/50 gradient-surface">
+          <div className="p-6 bg-background border border-border rounded-lg">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center">
@@ -184,11 +186,11 @@ export const SentimentDashboard = () => {
                 <BarChart data={sentimentData}>
                   <XAxis dataKey="sentiment" axisLine={false} tickLine={false} tick={{
                   fill: "hsl(var(--muted-foreground))",
-                  fontSize: 12
+                  fontSize: 16
                 }} />
                   <YAxis axisLine={false} tickLine={false} tick={{
                   fill: "hsl(var(--muted-foreground))",
-                  fontSize: 12
+                  fontSize: 16
                 }} />
                   <Tooltip contentStyle={{
                   backgroundColor: "hsl(var(--popover))",
@@ -216,10 +218,10 @@ export const SentimentDashboard = () => {
                   <div className="text-xs text-muted-foreground">{item.count} comments</div>
                 </div>)}
             </div>
-          </Card>
+          </div>
 
           {/* Time Series Chart */}
-          <Card className="p-6 shadow-card border-border/50 gradient-surface">
+          <div className="p-6 bg-background border border-border rounded-lg">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full gradient-accent flex items-center justify-center">
@@ -248,14 +250,14 @@ export const SentimentDashboard = () => {
                 <LineChart data={timeSeriesData}>
                   <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{
                   fill: "hsl(var(--muted-foreground))",
-                  fontSize: 12
+                  fontSize: 16
                 }} tickFormatter={value => new Date(value).toLocaleDateString('en-US', {
                   month: 'short',
                   day: 'numeric'
                 })} />
                   <YAxis axisLine={false} tickLine={false} tick={{
                   fill: "hsl(var(--muted-foreground))",
-                  fontSize: 12
+                  fontSize: 16
                 }} />
                   <Tooltip contentStyle={{
                   backgroundColor: "hsl(var(--popover))",
@@ -314,7 +316,7 @@ export const SentimentDashboard = () => {
                 <span className="text-sm">Neutral</span>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
       </div>
     </section>;

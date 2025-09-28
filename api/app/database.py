@@ -78,6 +78,19 @@ class DatabaseService:
             "count": len(result.data)
         }
 
+    def get_unanalyzed_comments(self, limit: int = 100) -> Dict[str, Any]:
+        """Get comments that haven't been analyzed yet (comment_sentiment is null or empty)."""
+        query = self.client.table("main_reddit").select("*")
+        query = query.or_("comment_sentiment.is.null,comment_sentiment.eq.")
+        query = query.limit(limit).order("comment_timestamp", desc=True)
+        
+        result = query.execute()
+        
+        return {
+            "comments": result.data,
+            "count": len(result.data)
+        }
+
     def delete_comments_for_product(self, product_name: str) -> int:
         """Delete all comments for a given product_name."""
         try:
@@ -186,6 +199,38 @@ class DatabaseService:
             return [cid for cid, _ in scored_channels[: max(0, int(limit))]]
         except Exception:
             return []
+
+    def get_comment_analysis_stats(self) -> Dict[str, int]:
+        """Get statistics about comment analysis status."""
+        try:
+            # Get total comments
+            total_result = self.client.table("main_reddit").select("id", count="exact").execute()
+            total_comments = getattr(total_result, "count", 0) or 0
+            
+            # Get analyzed comments (those with comment_sentiment not empty/null)
+            analyzed_result = (
+                self.client.table("main_reddit")
+                .select("id", count="exact")
+                .not_.is_("comment_sentiment", "null")
+                .neq("comment_sentiment", "")
+                .execute()
+            )
+            analyzed_comments = getattr(analyzed_result, "count", 0) or 0
+            
+            unanalyzed_comments = total_comments - analyzed_comments
+            
+            return {
+                "total_comments": total_comments,
+                "analyzed_comments": analyzed_comments,
+                "unanalyzed_comments": unanalyzed_comments
+            }
+        except Exception as e:
+            self.logger.exception(f"Failed to get comment analysis stats: {e}")
+            return {
+                "total_comments": 0,
+                "analyzed_comments": 0,
+                "unanalyzed_comments": 0
+            }
 
     def replace_source_channels(self, platform: str, channels: List[Dict[str, Any]]) -> Dict[str, int]:
         """Replace existing source_channel rows for a platform with provided channels.

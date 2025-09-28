@@ -208,11 +208,12 @@ class AnalysisService:
         }
 
     async def analyze_recent_comments(self, limit: int = 100) -> Dict[str, Any]:
-        """Analyze up to 'limit' recent comments and update rows with results.
+        """Analyze up to 'limit' unanalyzed comments and update rows with results.
 
         Updates fields: comment_sentiment, attribute_discussed, attribute_sentiment.
+        Only processes comments that haven't been analyzed yet.
         """
-        result = await asyncio.to_thread(db_service.get_recent_comments, limit=limit)
+        result = await asyncio.to_thread(db_service.get_unanalyzed_comments, limit=limit)
         comments = result.get("comments", [])
 
         if not comments:

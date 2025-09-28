@@ -54,11 +54,17 @@ async def ingest_sources(request: Request) -> IngestResponse:
     logger.info("/ingest starting ingestion run_once")
     print("[API] /ingest starting ingestion run_once")
     # Run ingestion
-    await ingestion_service.run_once(products, subreddits=subreddits)
+    counts = await ingestion_service.run_once(products, subreddits=subreddits)
     logger.info("/ingest completed ingestion run_once")
     print("[API] /ingest completed ingestion run_once")
     
-    return IngestResponse(status="completed", products=products, subreddits=subreddits)
+    return IngestResponse(
+        status="completed", 
+        products=products, 
+        subreddits=subreddits,
+        comments_ingested=counts.get("ingested", 0),
+        comments_failed=counts.get("failed", 0)
+    )
 
 @router.post("/start", response_model=IngestResponse)
 async def ingest_sources_start(request: Request) -> IngestResponse:
@@ -92,6 +98,12 @@ async def ingest_sources_start(request: Request) -> IngestResponse:
     except Exception:
         pass
 
-    await ingestion_service.run_once(products, subreddits=subreddits)
+    counts = await ingestion_service.run_once(products, subreddits=subreddits)
     logger.info("/ingest/start completed ingestion run_once")
-    return IngestResponse(status="completed", products=products, subreddits=subreddits)
+    return IngestResponse(
+        status="completed", 
+        products=products, 
+        subreddits=subreddits,
+        comments_ingested=counts.get("ingested", 0),
+        comments_failed=counts.get("failed", 0)
+    )

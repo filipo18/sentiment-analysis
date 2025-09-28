@@ -6,20 +6,20 @@ export const HeroSection = () => {
       <div className="relative max-w-7xl mx-auto text-left">
         <h1 className="text-4xl lg:text-6xl font-bold text-foreground mb-4">PulseIQ</h1>
         
-        <p className="text-xl lg:text-2xl text-muted-foreground mb-8 max-w-4xl leading-relaxed">User sentiment analysis empowering growth and marketing strategies</p>
+        <p className="text-xl lg:text-2xl text-muted-foreground mb-8 max-w-4xl leading-relaxed">User sentiment analysis empowering growth and marketing strategies for consumer products</p>
         
         <div className="flex flex-col sm:flex-row gap-4 justify-start items-start">
           <div className="flex items-center gap-2 text-muted-foreground">
             <div className="w-2 h-2 bg-positive rounded-full" />
-            <span>Live Sentiment Tracking</span>
+            <span>Identify most relevant sources to extract consumer sentiment from</span>
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
             <div className="w-2 h-2 bg-accent rounded-full" />
-            <span>AI-Powered Insights</span>
+            <span>Classify consumer sentiment with Natural Language Processing</span>
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
             <div className="w-2 h-2 bg-primary rounded-full" />
-            <span>Enterprise Ready</span>
+            <span>Extract insights from structured outputs</span>
           </div>
         </div>
       </div>

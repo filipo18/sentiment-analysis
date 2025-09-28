@@ -45,3 +45,5 @@ class IngestResponse(BaseModel):
     status: str
     products: List[str]
     subreddits: Optional[List[str]] = None
+    comments_ingested: Optional[int] = None
+    comments_failed: Optional[int] = None

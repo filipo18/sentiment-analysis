@@ -11,7 +11,7 @@ const Index = () => {
 
       {/* Product Discovery Section */}
       <section className="py-16 bg-background">
-        <div className="container mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-4">
           <ProductDiscovery />
         </div>
       </section>

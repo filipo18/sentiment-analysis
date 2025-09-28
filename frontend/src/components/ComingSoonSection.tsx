@@ -86,19 +86,22 @@ export const ComingSoonSection = () => {
     },
   };
 
-  return <section className="py-16 px-4">
+  return <section className="py-8 px-4">
       <div className="max-w-7xl mx-auto">
+      <div className="w-full h-px bg-gray-800 mt-16 mb-8"></div>
+
         <div className="text-left mb-12">
+
           <h2 className="text-3xl font-bold mb-4">
-            Attribute Analysis
+            Track sentiment on key product attributes
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl">
-            Identify attributes users associate with your product and quantify the sentiment surrounding each attribute
+            Identify attributes associated with a product and sentiment around each identified attribute
           </p>
         </div>
 
         {/* Attribute Chart */}
-        <Card className="p-6 shadow-card border-border/50 gradient-surface mb-12">
+        <Card className="p-6 bg-background border border-border rounded-lg mb-12">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
@@ -146,9 +149,9 @@ export const ComingSoonSection = () => {
                       textAnchor="end"
                       height={100}
                       interval={0}
-                      fontSize={12}
+                      fontSize={18}
                     />
-                    <YAxis />
+                    <YAxis tick={{ fontSize: 18 }} />
                     <ChartTooltip content={<ChartTooltipContent />} />
                     <Bar dataKey={showAttributePercentages ? "positivePercent" : "positive"} stackId="a" fill="hsl(142, 76%, 36%)" name="Positive" />
                     <Bar dataKey={showAttributePercentages ? "neutralPercent" : "neutral"} stackId="a" fill="hsl(220, 70%, 50%)" name="Neutral" />

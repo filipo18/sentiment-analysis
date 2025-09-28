@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Users, TrendingUp, MessageSquare } from "lucide-react";
+import { Loader2, Search, Users, TrendingUp, MessageSquare, Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface DiscoverResponse {
@@ -22,12 +22,20 @@ interface DiscoveryResults {
   reddit: DiscoverResponse[];
 }
 
+interface AnalysisProgress {
+  total_comments: number;
+  analyzed_comments: number;
+  unanalyzed_comments: number;
+}
+
 export const ProductDiscovery = () => {
   const [products, setProducts] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [isIngesting, setIsIngesting] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [results, setResults] = useState<DiscoveryResults | null>(null);
   const [selectedSubs, setSelectedSubs] = useState<Record<string, boolean>>({});
+  const [analysisProgress, setAnalysisProgress] = useState<AnalysisProgress | null>(null);
   const { toast } = useToast();
 
   const handleDiscover = async () => {
@@ -113,9 +121,12 @@ export const ProductDiscovery = () => {
       const data = await response.json();
       console.log("[UI] /ingest response:", data);
       toast({
-        title: "Ingestion Started",
-        description: `Status: ${data.status}. Products: ${(data.products || []).join(", ")}`,
+        title: "Ingestion Complete",
+        description: `Ingested ${data.comments_ingested || 0} comments successfully. ${data.comments_failed || 0} failed.`,
       });
+      
+      // Refresh analysis progress after ingestion
+      await fetchAnalysisProgress();
     } catch (error) {
       console.error("Ingestion failed:", error);
       toast({
@@ -128,8 +139,25 @@ export const ProductDiscovery = () => {
     }
   };
 
+  const fetchAnalysisProgress = async () => {
+    try {
+      const response = await fetch("http://localhost:8000/analyse-sentiment/progress");
+      if (response.ok) {
+        const data = await response.json();
+        setAnalysisProgress(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch analysis progress:", error);
+    }
+  };
+
   const handleAnalyzeSentiment = async () => {
     console.log("[UI] Analyze Sentiment clicked");
+    setIsAnalyzing(true);
+    
+    // Start polling for progress
+    const progressInterval = setInterval(fetchAnalysisProgress, 1000);
+    
     try {
       const res = await fetch("http://localhost:8000/analyse-sentiment", {
         method: "POST",
@@ -137,11 +165,33 @@ export const ProductDiscovery = () => {
       const data = await res.json();
       console.log("[UI] /analyse-sentiment response:", data);
       toast({ title: "Analysis complete", description: `Updated: ${data.updated}` });
+      
+      // Fetch final progress
+      await fetchAnalysisProgress();
     } catch (e) {
       console.error("[UI] analyse-sentiment failed", e);
       toast({ title: "Analysis failed", description: "See console for details", variant: "destructive" });
+    } finally {
+      setIsAnalyzing(false);
+      clearInterval(progressInterval);
     }
   };
+
+  // Poll for analysis progress when analyzing
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isAnalyzing) {
+      interval = setInterval(fetchAnalysisProgress, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isAnalyzing]);
+
+  // Fetch initial progress on component mount
+  useEffect(() => {
+    fetchAnalysisProgress();
+  }, []);
 
   const handleToggleSub = (subreddit: string) => {
     setSelectedSubs(prev => ({ ...prev, [subreddit]: !prev[subreddit] }));
@@ -175,9 +225,12 @@ export const ProductDiscovery = () => {
 
       const data = await response.json();
       toast({
-        title: "Ingestion Started",
-        description: `Status: ${data.status}. Subreddits: ${(data.subreddits || []).join(", ")}`,
+        title: "Ingestion Complete",
+        description: `Ingested ${data.comments_ingested || 0} comments successfully. ${data.comments_failed || 0} failed.`,
       });
+      
+      // Refresh analysis progress after ingestion
+      await fetchAnalysisProgress();
     } catch (error) {
       console.error("Ingestion (selected) failed:", error);
       toast({
@@ -197,9 +250,9 @@ export const ProductDiscovery = () => {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
       {/* Input Section */}
-      <Card>
+      <Card className="w-full p-6 bg-background border border-border rounded-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
@@ -254,18 +307,86 @@ export const ProductDiscovery = () => {
             <Button
               variant="secondary"
               onClick={handleAnalyzeSentiment}
-              disabled={!products.trim()}
+              disabled={isAnalyzing || !products.trim()}
               className="min-w-[160px]"
             >
-              Analyze Sentiment
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>Analyze Sentiment</>
+              )}
             </Button>
           </div>
         </CardContent>
       </Card>
 
+      {/* Analysis Progress Section */}
+      {analysisProgress && (
+        <Card className="w-full p-6 bg-background border border-border rounded-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              Analysis Progress
+            </CardTitle>
+            <CardDescription>
+              Real-time status of comment sentiment analysis
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <div className="text-2xl font-bold text-foreground">
+                  {analysisProgress.total_comments}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Total Comments
+                </div>
+              </div>
+              <div className="text-center p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  {analysisProgress.analyzed_comments}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Analyzed
+                </div>
+              </div>
+              <div className="text-center p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg">
+                <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                  {analysisProgress.unanalyzed_comments}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Pending
+                </div>
+              </div>
+            </div>
+            {analysisProgress.total_comments > 0 && (
+              <div className="mt-4">
+                <div className="flex justify-between text-sm text-muted-foreground mb-1">
+                  <span>Progress</span>
+                  <span>
+                    {Math.round((analysisProgress.analyzed_comments / analysisProgress.total_comments) * 100)}%
+                  </span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div 
+                    className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${(analysisProgress.analyzed_comments / analysisProgress.total_comments) * 100}%`
+                    }}
+                  ></div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Results Section */}
       {results && (
-        <Card>
+        <Card className="w-full p-6 bg-background border border-border rounded-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
@@ -355,3 +476,4 @@ export const ProductDiscovery = () => {
     </div>
   );
 };
+
