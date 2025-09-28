@@ -1,75 +1,119 @@
-Environment variables
----------------------
-
-Frontend (Vite):
-
-Create a `.env` at the repository root or in the `frontend/` folder with:
-
-```
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
-
-API:
-
-See `api/env.example` for available settings (Supabase, Reddit, analysis, limits).
-
 # Radar Pulse AI
 
-A sentiment analysis application with React frontend and FastAPI backend.
+A sentiment analysis platform that monitors Reddit discussions about products and provides AI-powered Q&A capabilities.
 
-## Project Structure
+## 🚀 Features
+
+- **Real-time Sentiment Analysis**: Track consumer sentiment with interactive charts
+- **Product Discovery**: Find relevant Reddit channels for any product
+- **Content Ingestion**: Automatically collect and analyze Reddit comments
+- **AI-Powered Search**: Semantic search through comments using vector database
+- **Natural Language Q&A**: Ask questions about your data and get AI-generated answers
+
+## 🏗️ Architecture
 
 ```
 radar-pulse-ai/
 ├── frontend/          # React/TypeScript frontend
-│   ├── src/
-│   ├── public/
-│   ├── package.json
-│   └── ...
 ├── api/               # FastAPI Python backend
-│   ├── main.py
-│   ├── config.py
-│   ├── requirements.txt
-│   └── run.py
-└── supabase/          # Database migrations
+├── supabase/          # Database migrations
+└── docker-compose.yaml # Weaviate vector database
 ```
 
-## Getting Started
+## 🛠️ Tech Stack
 
-### Frontend (React/TypeScript)
+**Frontend:** React, TypeScript, Tailwind CSS, Recharts
+**Backend:** FastAPI, Supabase, Weaviate, OpenAI, PRAW
+
+## 📋 Prerequisites
+
+- Node.js, Python, Docker
+- Reddit API credentials
+- OpenAI API key
+- Supabase project
+
+## 🚀 Quick Start
+
+### 1. Setup Backend
+
+```bash
+cd api
+python -m venv venv
+venv\Scripts\activate  # Windows
+pip install -r requirements.txt
+cp env.example .env
+```
+
+**Configure `api/.env`:**
+```env
+REDDIT_CLIENT_ID=your_reddit_client_id
+REDDIT_CLIENT_SECRET=your_reddit_client_secret
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_key
+OPENAI_API_KEY=your_openai_key
+```
+
+### 2. Setup Frontend
 
 ```bash
 cd frontend
 npm install
-npm run dev
+cp .env.example .env
 ```
 
-The frontend will be available at `http://localhost:8081`
+**Configure `frontend/.env`:**
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-### Backend (FastAPI)
+### 3. Start Services
 
 ```bash
-cd api
-pip install -r requirements.txt
-python run.py
+# Terminal 1: Weaviate
+cd api && docker compose up -d weaviate
+
+# Terminal 2: Backend
+cd api && venv\Scripts\activate && python main.py
+
+# Terminal 3: Frontend
+cd frontend && npm run dev
 ```
 
-The API will be available at `http://localhost:8000`
+**Access:**
+- Frontend: http://localhost:5173
+- Backend: http://localhost:8000
+- API Docs: http://localhost:8000/docs
 
-### API Documentation
+## 📊 Usage
 
-Once the backend is running, you can access:
-- API docs: `http://localhost:8000/docs`
-- Health check: `http://localhost:8000/health`
-- Latest comments: `http://localhost:8000/comments/latest`
+1. **Discover Products**: Find relevant Reddit channels for products
+2. **Ingest Content**: Collect and analyze Reddit comments
+3. **View Analytics**: Check sentiment dashboard with real-time charts
+4. **Search & Q&A**: Use semantic search or ask natural language questions
 
-## Database
+**Sync Vector Database:**
+```bash
+curl -X POST "http://localhost:8000/qa/sync?limit=1000"
+```
 
-The application uses Supabase as the database. Both frontend and backend connect to the same Supabase instance.
+## 🔌 API Endpoints
 
-## Features
+**Core:** `/health`, `/discover`, `/ingest`, `/comments`
+**Q&A:** `/qa/ask`, `/qa/search`, `/qa/sync`, `/qa/stats`
 
-- **Frontend**: Real-time sentiment analysis dashboard with charts and visualizations
-- **Backend**: FastAPI server with endpoints to fetch and analyze Reddit comments
-- **Database**: Supabase integration for storing and retrieving sentiment data
+## 🔧 Setup Requirements
+
+**Reddit API:** Create app at https://www.reddit.com/prefs/apps
+**Supabase:** Create project and get URL/key
+**OpenAI:** Get API key from https://platform.openai.com/account/api-keys
+
+## 🚨 Troubleshooting
+
+- **Weaviate**: Check `docker compose ps` and `curl http://localhost:8082/v1/meta`
+- **API**: Verify environment variables and credentials
+- **Frontend**: Check console for CORS errors
+
+---
+
+**API Docs:** http://localhost:8000/docs
