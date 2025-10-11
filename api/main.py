@@ -24,10 +24,10 @@ if sys.platform.startswith("win"):
 app = FastAPI(
     title=settings.API_TITLE,
     version=settings.API_VERSION,
-    description="A FastAPI application for discovering and ingesting social media content for product analysis"
+    description="A FastAPI app for social media content for product analysis"
 )
 
-# Add CORS middleware
+# ToDo: Fix before going to prod
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -39,7 +39,7 @@ app.add_middleware(
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("app")
 
-# Log every request (also print to ensure visibility in simple runners)
+# ToDo: Log every request (fix to work on https as well before going to prod)
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.perf_counter()
@@ -47,7 +47,6 @@ async def log_requests(request: Request, call_next):
     duration_ms = (time.perf_counter() - start_time) * 1000
     client = request.client.host if request.client else "-"
     logger.info(f"{client} {request.method} {request.url.path} -> {response.status_code} {duration_ms:.1f}ms")
-    print(f"[API] {client} {request.method} {request.url.path} -> {response.status_code} {duration_ms:.1f}ms")
     return response
 
 # Include routers

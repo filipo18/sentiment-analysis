@@ -1,5 +1,5 @@
 """Discovery API endpoints."""
-from typing import Dict, List
+from typing import Dict, List, Any
 from fastapi import APIRouter, HTTPException
 from app.models import ProductInput, DiscoverResponse
 from app.services.discovery_service import ChannelDiscoveryService
@@ -17,12 +17,12 @@ async def discover_products(payload: ProductInput) -> Dict[str, List[DiscoverRes
         raise HTTPException(status_code=400, detail="At least one product required")
     
     # Clean up products list
-    products = [p.strip() for p in payload.products if p.strip()]
+    products: List[str] = [p.strip() for p in payload.products if p.strip()]
     if not products:
         raise HTTPException(status_code=400, detail="At least one product required")
     
     # Discover channels
-    discovery = await discovery_service.discover(products)
+    discovery: Dict[str, List[Dict[str, Any]]] = await discovery_service.discover(products)
 
     # Persist Reddit results into source_channel by replacing existing rows
     reddit_results = discovery.get("reddit", [])

@@ -2,37 +2,19 @@
 
 A sentiment analysis platform that monitors Reddit discussions about products and provides AI-powered Q&A capabilities.
 
-## 🚀 Features
-
-- **Real-time Sentiment Analysis**: Track consumer sentiment with interactive charts
-- **Product Discovery**: Find relevant Reddit channels for any product
-- **Content Ingestion**: Automatically collect and analyze Reddit comments
-- **AI-Powered Search**: Semantic search through comments using vector database
-- **Natural Language Q&A**: Ask questions about your data and get AI-generated answers
-
-## 🏗️ Architecture
-
-```
-radar-pulse-ai/
-├── frontend/          # React/TypeScript frontend
-├── api/               # FastAPI Python backend
-├── supabase/          # Database migrations
-└── docker-compose.yaml # Weaviate vector database
-```
-
-## 🛠️ Tech Stack
+## Tech Stack
 
 **Frontend:** React, TypeScript, Tailwind CSS, Recharts
 **Backend:** FastAPI, Supabase, Weaviate, OpenAI, PRAW
 
-## 📋 Prerequisites
+## Prerequisites
 
 - Node.js, Python, Docker
 - Reddit API credentials
 - OpenAI API key
 - Supabase project
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Setup Backend
 
@@ -46,11 +28,33 @@ cp env.example .env
 
 **Configure `api/.env`:**
 ```env
+# Reddit API credentials
 REDDIT_CLIENT_ID=your_reddit_client_id
 REDDIT_CLIENT_SECRET=your_reddit_client_secret
+REDDIT_USER_AGENT=ProductSocialSensing/1.0
+
+# Supabase credentials
 SUPABASE_URL=your_supabase_url
 SUPABASE_KEY=your_supabase_key
+
+# OpenAI API credentials
 OPENAI_API_KEY=your_openai_key
+
+# Weaviate configuration
+WEAVIATE_URL=http://localhost:8080
+WEAVIATE_API_KEY=your_weaviate_api_key
+
+# Defaults and limits
+DEFAULT_PRODUCTS=iPhone16
+MAX_COMMENTS_PER_SUBMISSION=50
+MAX_SUBMISSIONS_PER_PRODUCT=20
+MAX_DISCOVERY_RESULTS=20
+TOP_SUBREDDITS_LIMIT=2
+ANALYSIS_LIMIT=100
+
+# API metadata
+API_TITLE=Product Social Sensing API
+API_VERSION=0.1.0
 ```
 
 ### 2. Setup Frontend
@@ -63,6 +67,7 @@ cp .env.example .env
 
 **Configure `frontend/.env`:**
 ```env
+VITE_SUPABASE_PROJECT_ID=your_project_id
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
@@ -85,13 +90,6 @@ cd frontend && npm run dev
 - Backend: http://localhost:8000
 - API Docs: http://localhost:8000/docs
 
-## 📊 Usage
-
-1. **Discover Products**: Find relevant Reddit channels for products
-2. **Ingest Content**: Collect and analyze Reddit comments
-3. **View Analytics**: Check sentiment dashboard with real-time charts
-4. **Search & Q&A**: Use semantic search or ask natural language questions
-
 **Sync Vector Database:**
 ```bash
 curl -X POST "http://localhost:8000/qa/sync?limit=1000"
@@ -110,7 +108,7 @@ curl -X POST "http://localhost:8000/qa/sync?limit=1000"
 
 ## 🚨 Troubleshooting
 
-- **Weaviate**: Check `docker compose ps` and `curl http://localhost:8082/v1/meta`
+- **Weaviate**: Check `docker compose ps` and `curl http://localhost:8080/v1/meta`
 - **API**: Verify environment variables and credentials
 - **Frontend**: Check console for CORS errors
 

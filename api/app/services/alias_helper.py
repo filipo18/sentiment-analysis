@@ -6,6 +6,7 @@ import os
 from typing import List
 
 from openai import OpenAI
+import openai
 
 
 def _load_openai_key() -> str:
@@ -28,29 +29,29 @@ class AliasHelper:
         self.client = OpenAI(api_key=_load_openai_key())
 
     async def suggest_subreddits(self, products: List[str]) -> List[str]:
-        prompt = (
+        prompt: str = (
             "Given these product names, list up to 8 relevant subreddit names (without r/ prefix), "
             "comma-separated, no explanations. Products: " + ", ".join(products)
         )
-        resp = self.client.chat.completions.create(
+        resp: openai.types.chat.ChatCompletion = self.client.chat.completions.create(
             model="gpt-5-mini",
             messages=[{"role": "user", "content": prompt}]
         )
-        text = resp.choices[0].message.content or ""
-        names = [s.strip().lstrip("r/") for s in text.split(",") if s.strip()]
+        text: str = resp.choices[0].message.content or ""
+        names: List[str] = [s.strip().lstrip("r/") for s in text.split(",") if s.strip()]
         return names[:8]
 
     async def suggest_reddit_queries(self, products: List[str]) -> List[str]:
-        prompt = (
+        prompt: str = (
             "Create up to 5 high-signal Reddit search queries for these products. "
             "Return comma-separated queries only. Products: " + ", ".join(products)
         )
-        resp = self.client.chat.completions.create(
+        resp: openai.types.chat.ChatCompletion = self.client.chat.completions.create(
             model="gpt-5-mini",
             messages=[{"role": "user", "content": prompt}]
         )
-        text = resp.choices[0].message.content or ""
-        queries = [s.strip() for s in text.split(",") if s.strip()]
+        text: str = resp.choices[0].message.content or ""
+        queries: List[str] = [s.strip() for s in text.split(",") if s.strip()]
         return queries[:5]
 
 
