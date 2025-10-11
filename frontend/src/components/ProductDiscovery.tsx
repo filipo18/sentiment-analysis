@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Users, TrendingUp, MessageSquare, Activity } from "lucide-react";
+import { Loader2, Search, Users, TrendingUp, Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface DiscoverResponse {
@@ -12,9 +12,7 @@ interface DiscoverResponse {
   name: string;
   score: number;
   metrics: {
-    mentions: number;
-    avg_score: number;
-    comments: number;
+    subscribers: number;
   };
 }
 
@@ -438,16 +436,8 @@ export const ProductDiscovery = () => {
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <div className="flex items-center gap-1">
-                            <TrendingUp className="h-4 w-4" />
-                            <span>Score: {channel.score.toFixed(1)}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <MessageSquare className="h-4 w-4" />
-                            <span>{channel.metrics.mentions} mentions</span>
-                          </div>
-                          <div className="flex items-center gap-1">
                             <Users className="h-4 w-4" />
-                            <span>{channel.metrics.comments} comments</span>
+                            <span className="font-medium">{channel.metrics.subscribers.toLocaleString()} subscribers</span>
                           </div>
                         </div>
                       </div>
@@ -455,9 +445,6 @@ export const ProductDiscovery = () => {
                     <div className="text-right">
                       <div className="text-sm font-medium">
                         #{index + 1}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Avg Score: {channel.metrics.avg_score.toFixed(1)}
                       </div>
                     </div>
                   </div>

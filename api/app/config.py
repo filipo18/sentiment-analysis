@@ -28,10 +28,10 @@ class Settings:
     
     # Ingestion/Discovery settings
     MAX_COMMENTS_PER_SUBMISSION: int = int(os.getenv("MAX_COMMENTS_PER_SUBMISSION", "50"))
-    MAX_SUBMISSIONS_PER_PRODUCT: int = int(os.getenv("MAX_SUBMISSIONS_PER_PRODUCT", "20"))
     MAX_DISCOVERY_RESULTS: int = int(os.getenv("MAX_DISCOVERY_RESULTS", "20"))
     TOP_SUBREDDITS_LIMIT: int = int(os.getenv("TOP_SUBREDDITS_LIMIT", "2"))
     ANALYSIS_LIMIT: int = int(os.getenv("ANALYSIS_LIMIT", "100"))
+
 
 def get_settings() -> Settings:
     """Get application settings."""

@@ -30,28 +30,16 @@ class AliasHelper:
 
     async def suggest_subreddits(self, products: List[str]) -> List[str]:
         prompt: str = (
-            "Given these product names, list up to 8 relevant subreddit names (without r/ prefix), "
-            "comma-separated, no explanations. Products: " + ", ".join(products)
+            "Given these consumer products, suggest 8-12 specific Reddit subreddit names where people would discuss them. "
+            "Include both general topic subreddits and brand-specific ones. "
+            "Return only subreddit names (without r/ prefix), comma-separated, no explanations. "
+            "Examples: technology, smartphones, android, iphone, samsung, apple, gaming, fitness, beauty, skincare. "
+            "Products: " + ", ".join(products)
         )
         resp: openai.types.chat.ChatCompletion = self.client.chat.completions.create(
-            model="gpt-5-mini",
+            model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}]
         )
         text: str = resp.choices[0].message.content or ""
         names: List[str] = [s.strip().lstrip("r/") for s in text.split(",") if s.strip()]
-        return names[:8]
-
-    async def suggest_reddit_queries(self, products: List[str]) -> List[str]:
-        prompt: str = (
-            "Create up to 5 high-signal Reddit search queries for these products. "
-            "Return comma-separated queries only. Products: " + ", ".join(products)
-        )
-        resp: openai.types.chat.ChatCompletion = self.client.chat.completions.create(
-            model="gpt-5-mini",
-            messages=[{"role": "user", "content": prompt}]
-        )
-        text: str = resp.choices[0].message.content or ""
-        queries: List[str] = [s.strip() for s in text.split(",") if s.strip()]
-        return queries[:5]
-
-
+        return names[:12]
