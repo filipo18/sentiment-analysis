@@ -1,7 +1,7 @@
 """Ingestion API endpoints."""
-from typing import Any, Dict, List
-from fastapi import APIRouter, Request
-from app.models import IngestResponse
+from typing import List
+from fastapi import APIRouter, HTTPException
+from app.models import IngestRequest, IngestResponse
 import logging
 from app.services.ingestion_service import IngestionService
 from app.config import get_settings
@@ -13,93 +13,36 @@ ingestion_service = IngestionService()
 settings = get_settings()
 logger = logging.getLogger("app.ingestion")
 
-@router.post("", response_model=IngestResponse)
-async def ingest_sources(request: Request) -> IngestResponse:
-    """Ingest content from discovered sources.
+def normalize_subreddit_name(name: str) -> str:
+    """Strip 'r/' prefix from subreddit name if present."""
+    name = name.strip()
+    if name.lower().startswith("r/"):
+        return name[2:]
+    return name
 
-    Accepts optional JSON body: { "products": ["..."] }.
-    If body is omitted, invalid, or empty, defaults to settings.DEFAULT_PRODUCTS.
-    """
-    client_ip = request.client.host if request.client else "-"
-    logger.info(f"/ingest called from {client_ip}")
-    print(f"[API] /ingest called from {client_ip}")
-    products: List[str] = settings.DEFAULT_PRODUCTS
-    subreddits: List[str] | None = None
-    try:
-        # Attempt to parse JSON body; handle empty body gracefully
-        data = await request.json()
-        if isinstance(data, dict):
-            maybe = data.get("products")
-            if isinstance(maybe, list):
-                products = [str(p).strip() for p in maybe if str(p).strip()]
-                if not products:
-                    products = settings.DEFAULT_PRODUCTS
-            maybe_subs = data.get("subreddits")
-            if isinstance(maybe_subs, list):
-                # normalize subreddit names (strip leading r/ if provided)
-                normalized = []
-                for s in maybe_subs:
-                    name = str(s).strip()
-                    if name.lower().startswith("r/"):
-                        name = name[2:]
-                    if name:
-                        normalized.append(name)
-                subreddits = normalized or None
-    except Exception:
-        # No/invalid JSON body; keep defaults
-        pass
+@router.post("", response_model=IngestResponse)
+async def ingest_sources(request: IngestRequest) -> IngestResponse:
+    """Ingest content from discovered sources."""
+    logger.info("/ingest called")
     
-    logger.info(f"/ingest resolved products: {products} subreddits={subreddits}")
-    print(f"[API] /ingest resolved products: {products} subreddits={subreddits}")
-    logger.info("/ingest starting ingestion run_once")
-    print("[API] /ingest starting ingestion run_once")
+    # Use provided products or default
+    if not request.products or not any(p.strip() for p in request.products):
+        raise HTTPException(status_code=400, detail="No products provided for ingestion.")
+    products = [p.strip() for p in request.products if p.strip()]
+    
+    # Validate subreddits are provided
+    if not request.subreddits or not any(s.strip() for s in request.subreddits):
+        raise HTTPException(status_code=400, detail="No subreddits provided for ingestion.")
+    
+    # Normalize subreddit names (strip r/ prefix)
+    subreddits = [normalize_subreddit_name(s) for s in request.subreddits if s.strip()]
+    
+    logger.info(f"Products: {products}, Subreddits: {subreddits}")
+    
     # Run ingestion
     counts = await ingestion_service.run_once(products, subreddits=subreddits)
-    logger.info("/ingest completed ingestion run_once")
-    print("[API] /ingest completed ingestion run_once")
+    logger.info("Ingestion completed")
     
-    return IngestResponse(
-        status="completed", 
-        products=products, 
-        subreddits=subreddits,
-        comments_ingested=counts.get("ingested", 0),
-        comments_failed=counts.get("failed", 0)
-    )
-
-@router.post("/start", response_model=IngestResponse)
-async def ingest_sources_start(request: Request) -> IngestResponse:
-    """Compatibility endpoint for ingestion.
-
-    Accepts either {"products": [...]} or {"sources": [...]} and defaults otherwise.
-    """
-    client_ip = request.client.host if request.client else "-"
-    logger.info(f"/ingest/start called from {client_ip}")
-    products: List[str] = settings.DEFAULT_PRODUCTS
-    subreddits: List[str] | None = None
-    try:
-        data = await request.json()
-        if isinstance(data, dict):
-            # Support both keys
-            maybe = data.get("products") or data.get("sources")
-            if isinstance(maybe, list):
-                products = [str(p).strip() for p in maybe if str(p).strip()]
-                if not products:
-                    products = settings.DEFAULT_PRODUCTS
-            maybe_subs = data.get("subreddits")
-            if isinstance(maybe_subs, list):
-                normalized = []
-                for s in maybe_subs:
-                    name = str(s).strip()
-                    if name.lower().startswith("r/"):
-                        name = name[2:]
-                    if name:
-                        normalized.append(name)
-                subreddits = normalized or None
-    except Exception:
-        pass
-
-    counts = await ingestion_service.run_once(products, subreddits=subreddits)
-    logger.info("/ingest/start completed ingestion run_once")
     return IngestResponse(
         status="completed", 
         products=products, 

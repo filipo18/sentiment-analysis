@@ -93,49 +93,6 @@ export const ProductDiscovery = () => {
     }
   };
 
-  const handleIngest = async () => {
-    setIsIngesting(true);
-    try {
-      const productList = products
-        .split(",")
-        .map(p => p.trim())
-        .filter(p => p.length > 0);
-
-      const hasProducts = productList.length > 0;
-
-      console.log("[UI] Calling /ingest with:", hasProducts ? productList : "<defaults>");
-      const response = await fetch("http://localhost:8000/ingest", {
-        method: "POST",
-        headers: hasProducts ? { "Content-Type": "application/json" } : undefined,
-        body: hasProducts ? JSON.stringify({ products: productList }) : undefined,
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        console.error("[UI] /ingest failed:", response.status, text);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log("[UI] /ingest response:", data);
-      toast({
-        title: "Ingestion Complete",
-        description: `Ingested ${data.comments_ingested || 0} comments successfully. ${data.comments_failed || 0} failed.`,
-      });
-      
-      // Refresh analysis progress after ingestion
-      await fetchAnalysisProgress();
-    } catch (error) {
-      console.error("Ingestion failed:", error);
-      toast({
-        title: "Ingestion Failed",
-        description: "Failed to start ingestion. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsIngesting(false);
-    }
-  };
 
   const fetchAnalysisProgress = async () => {
     try {
@@ -195,7 +152,7 @@ export const ProductDiscovery = () => {
     setSelectedSubs(prev => ({ ...prev, [subreddit]: !prev[subreddit] }));
   };
 
-  const handleIngestSelected = async () => {
+  const handleIngest = async () => {
     const chosen = Object.keys(selectedSubs).filter(k => selectedSubs[k]);
     if (chosen.length === 0) {
       toast({ title: "No subreddits selected", description: "Select at least one subreddit to ingest.", variant: "destructive" });
@@ -287,21 +244,23 @@ export const ProductDiscovery = () => {
                 </>
               )}
             </Button>
-            <Button
-              variant="outline"
-              onClick={handleIngest}
-              disabled={isIngesting || !products.trim()}
-              className="min-w-[120px]"
-            >
-              {isIngesting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Ingesting...
-                </>
-              ) : (
-                <>Ingest</>
-              )}
-            </Button>
+            {results && (
+              <Button
+                variant="outline"
+                onClick={handleIngest}
+                disabled={isIngesting}
+                className="min-w-[120px]"
+              >
+                {isIngesting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Ingesting...
+                  </>
+                ) : (
+                  <>Ingest</>
+                )}
+              </Button>
+            )}
             <Button
               variant="secondary"
               onClick={handleAnalyzeSentiment}
@@ -396,20 +355,10 @@ export const ProductDiscovery = () => {
           </CardHeader>
           <CardContent>
             {results.reddit && results.reddit.length > 0 ? (
-              <div className="flex items-center justify-between mb-3">
+              <div className="mb-3">
                 <div className="text-sm text-muted-foreground">
-                  Select subreddits to ingest, or use the generic Ingest button.
+                  Select subreddits to ingest using the Ingest button above.
                 </div>
-                <Button onClick={handleIngestSelected} disabled={isIngesting} variant="outline">
-                  {isIngesting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Ingesting...
-                    </>
-                  ) : (
-                    <>Ingest Selected</>
-                  )}
-                </Button>
               </div>
             ) : null}
             {results.reddit && results.reddit.length > 0 ? (
