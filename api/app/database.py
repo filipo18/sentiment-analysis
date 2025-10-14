@@ -1,8 +1,9 @@
 """Database operations using Supabase."""
 from typing import Any, Dict, List, Optional
-from supabase import Client, create_client
+from supabase import Client, create_client, AsyncClient, acreate_client
 from app.config import get_settings
 import logging
+import asyncio
 
 settings = get_settings()
 
@@ -10,9 +11,13 @@ class DatabaseService:
     """Service for database operations."""
     
     def __init__(self):
-        """Initialize Supabase client."""
+        """Initialize Supabase clients."""
         self.client: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
         self.logger = logging.getLogger("app.db_service")
+    
+    async def _get_async_client(self) -> AsyncClient:
+        """Get async Supabase client."""
+        return await acreate_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
     
     def insert_comment(self, comment_data: Dict[str, Any]) -> bool:
         """Insert a comment into the main_reddit table."""
@@ -26,8 +31,6 @@ class DatabaseService:
                 data["comment_sentiment"] = ""
             result = self.client.table("main_reddit").insert(data).execute()
             # Log Supabase response for troubleshooting
-            self.logger.info(f"Supabase insert status={getattr(result, 'status_code', None)}")
-            print(f"[DB] Inserted row status={getattr(result, 'status_code', None)}")
             return True
         except Exception as e:
             print(f"[DB] Failed to insert comment: {e}")
@@ -115,22 +118,55 @@ class DatabaseService:
         except Exception as e:
             self.logger.exception(f"Failed to delete all comments: {e}")
             return 0
-
-    def update_comment_fields(self, comment_id: int, fields: Dict[str, Any]) -> bool:
-        """Update specific fields of a comment row by id."""
+    
+    async def update_comment_fields_async(self, comment_id: int, fields: Dict[str, Any]) -> bool:
+        """Update specific fields of a comment row by id (async version)."""
         try:
-            result = (
-                self.client
+            async_client = await self._get_async_client()
+            result = await (
+                async_client
                 .table("main_reddit")
                 .update(fields)
                 .eq("id", comment_id)
                 .execute()
             )
-            self.logger.info(f"Supabase update id={comment_id} status={getattr(result, 'status_code', None)}")
+            # self.logger.info(f"Supabase async update id={comment_id} status={getattr(result, 'status_code', None)}")  # Disabled to reduce log noise
             return True
         except Exception as e:
-            self.logger.exception(f"Failed to update comment id={comment_id}: {e}")
+            self.logger.exception(f"Failed to async update comment id={comment_id}: {e}")
             return False
+
+    async def update_comments_batch_async(self, updates: List[Dict[str, Any]]) -> int:
+        """Update multiple comments in a single batch request."""
+        if not updates:
+            return 0
+            
+        try:
+            async_client = await self._get_async_client()
+            
+            # Simple: just do individual updates concurrently
+            async def update_one(update_data):
+                comment_id = update_data.pop("id")
+                return await (
+                    async_client
+                    .table("main_reddit")
+                    .update(update_data)
+                    .eq("id", comment_id)
+                    .execute()
+                )
+            
+            # Run all updates concurrently
+            tasks = [update_one(update.copy()) for update in updates]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Count successes
+            successful = sum(1 for r in results if not isinstance(r, Exception))
+            logging.info(f"📊 Updated {successful}/{len(updates)} comments")
+            return successful
+            
+        except Exception as e:
+            self.logger.exception(f"Failed to batch update {len(updates)} comments: {e}")
+            return 0
 
     def get_top_reddit_channel(self) -> Optional[str]:
         """Return the channel_id of the highest-ranked Reddit source from SourceChannel table.

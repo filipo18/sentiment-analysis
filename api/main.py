@@ -39,6 +39,9 @@ app.add_middleware(
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("app")
 
+# Disable noisy httpx logs for database calls
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
 # ToDo: Log every request (fix to work on https as well before going to prod)
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -46,6 +49,11 @@ async def log_requests(request: Request, call_next):
     response = await call_next(request)
     duration_ms = (time.perf_counter() - start_time) * 1000
     client = request.client.host if request.client else "-"
+    
+    # Skip logging for progress endpoint to reduce noise
+    if request.url.path == "/analyse-sentiment/progress":
+        return response
+        
     logger.info(f"{client} {request.method} {request.url.path} -> {response.status_code} {duration_ms:.1f}ms")
     return response
 

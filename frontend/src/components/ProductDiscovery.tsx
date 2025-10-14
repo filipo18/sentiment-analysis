@@ -94,24 +94,25 @@ export const ProductDiscovery = () => {
   };
 
 
-  const fetchAnalysisProgress = async () => {
-    try {
-      const response = await fetch("http://localhost:8000/analyse-sentiment/progress");
-      if (response.ok) {
-        const data = await response.json();
-        setAnalysisProgress(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch analysis progress:", error);
-    }
-  };
+  // COMMENTED OUT: Progress polling to reduce server log noise
+  // const fetchAnalysisProgress = async () => {
+  //   try {
+  //     const response = await fetch("http://localhost:8000/analyse-sentiment/progress");
+  //     if (response.ok) {
+  //       const data = await response.json();
+  //       setAnalysisProgress(data);
+  //     }
+  //   } catch (error) {
+  //     console.error("Failed to fetch analysis progress:", error);
+  //   }
+  // };
 
   const handleAnalyzeSentiment = async () => {
     console.log("[UI] Analyze Sentiment clicked");
     setIsAnalyzing(true);
     
-    // Start polling for progress
-    const progressInterval = setInterval(fetchAnalysisProgress, 1000);
+    // COMMENTED OUT: Start polling for progress
+    // const progressInterval = setInterval(fetchAnalysisProgress, 1000);
     
     try {
       const res = await fetch("http://localhost:8000/analyse-sentiment", {
@@ -121,32 +122,32 @@ export const ProductDiscovery = () => {
       console.log("[UI] /analyse-sentiment response:", data);
       toast({ title: "Analysis complete", description: `Updated: ${data.updated}` });
       
-      // Fetch final progress
-      await fetchAnalysisProgress();
+      // COMMENTED OUT: Fetch final progress
+      // await fetchAnalysisProgress();
     } catch (e) {
       console.error("[UI] analyse-sentiment failed", e);
       toast({ title: "Analysis failed", description: "See console for details", variant: "destructive" });
     } finally {
       setIsAnalyzing(false);
-      clearInterval(progressInterval);
+      // COMMENTED OUT: clearInterval(progressInterval);
     }
   };
 
-  // Poll for analysis progress when analyzing
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isAnalyzing) {
-      interval = setInterval(fetchAnalysisProgress, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isAnalyzing]);
+  // COMMENTED OUT: Poll for analysis progress when analyzing
+  // useEffect(() => {
+  //   let interval: NodeJS.Timeout;
+  //   if (isAnalyzing) {
+  //     interval = setInterval(fetchAnalysisProgress, 1000);
+  //   }
+  //   return () => {
+  //     if (interval) clearInterval(interval);
+  //   };
+  // }, [isAnalyzing]);
 
-  // Fetch initial progress on component mount
-  useEffect(() => {
-    fetchAnalysisProgress();
-  }, []);
+  // COMMENTED OUT: Fetch initial progress on component mount
+  // useEffect(() => {
+  //   fetchAnalysisProgress();
+  // }, []);
 
   const handleToggleSub = (subreddit: string) => {
     setSelectedSubs(prev => ({ ...prev, [subreddit]: !prev[subreddit] }));
@@ -184,8 +185,8 @@ export const ProductDiscovery = () => {
         description: `Ingested ${data.comments_ingested || 0} comments successfully. ${data.comments_failed || 0} failed.`,
       });
       
-      // Refresh analysis progress after ingestion
-      await fetchAnalysisProgress();
+      // COMMENTED OUT: Refresh analysis progress after ingestion
+      // await fetchAnalysisProgress();
     } catch (error) {
       console.error("Ingestion (selected) failed:", error);
       toast({

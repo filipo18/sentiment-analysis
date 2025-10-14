@@ -27,8 +27,9 @@ async def analyse_sentiment(limit: Optional[int] = Query(default=None, ge=1, le=
 
 
 @router.get("/progress")
-async def get_analysis_progress() -> Dict[str, int]:
+def get_analysis_progress() -> Dict[str, int]:
     """Get real-time progress of comment analysis."""
+    # This endpoint is called frequently by the frontend, so we don't log it
     stats = db_service.get_comment_analysis_stats()
     return stats
 

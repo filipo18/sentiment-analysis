@@ -29,6 +29,7 @@ class Settings:
     MAX_POSTS_PER_SUBREDDIT: int = int(os.getenv("MAX_POSTS_PER_SUBREDDIT", "15"))
     MAX_DISCOVERY_RESULTS: int = int(os.getenv("MAX_DISCOVERY_RESULTS", "20"))
     ANALYSIS_LIMIT: int = int(os.getenv("ANALYSIS_LIMIT", "100"))
+    ANALYSIS_BATCH_SIZE: int = int(os.getenv("ANALYSIS_BATCH_SIZE", "50"))
 
 
 def get_settings() -> Settings:
