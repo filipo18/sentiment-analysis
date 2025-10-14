@@ -280,16 +280,20 @@ class AnalysisService:
 
 
         # Process all batches concurrently with rate limiting
-        semaphore = asyncio.Semaphore(3)  # Max 3 concurrent batches
+        semaphore = asyncio.Semaphore(10)  # Max 10 concurrent batches
         
-        async def process_batch_with_limit(batch: List[Dict[str, Any]]) -> int:
+        async def process_batch_with_limit(batch: List[Dict[str, Any]], delay_s: float) -> int:
             """Process a batch with semaphore limiting and rate control."""
+            await asyncio.sleep(delay_s)  # Stagger start times
             async with semaphore:  # Wait for available slot
-                await asyncio.sleep(2)  # 500ms delay between batch starts
                 return await process_batch(batch)
         
         try:
-            tasks = [process_batch_with_limit(batch) for batch in batches]
+            # Create tasks with staggered delays (1s apart)
+            tasks = [
+                process_batch_with_limit(batch, i * 1)
+                for i, batch in enumerate(batches)
+            ]
             results = await asyncio.gather(*tasks, return_exceptions=True)
             
             # Handle any exceptions that occurred during processing
